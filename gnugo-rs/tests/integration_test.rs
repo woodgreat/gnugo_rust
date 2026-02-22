@@ -12,7 +12,7 @@ mod tests {
     #[test]
     fn test_board_creation() {
         let board = Board::new(9);
-        // Test that board was created with correct size (using a getter method)
+        // Test that board was created with correct size
         assert_eq!(board.size(), 9);
         assert_eq!(board.get_stone(0, 0), Stone::Empty);
     }
@@ -21,7 +21,7 @@ mod tests {
     fn test_board_placement() {
         let mut board = Board::new(9);
         let result = board.place_stone(0, 0, Stone::Black);
-        assert!(result);
+        assert!(result.is_ok());
         assert_eq!(board.get_stone(0, 0), Stone::Black);
     }
     

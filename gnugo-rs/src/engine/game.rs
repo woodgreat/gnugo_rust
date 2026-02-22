@@ -4,6 +4,7 @@
 //! Game logic and state management
 
 use crate::engine::board::Board;
+use crate::engine::board::Stone;
 
 /// Represents the state of a Go game
 #[derive(Debug, Clone)]
@@ -48,21 +49,29 @@ impl Game {
         
         // Try to place the stone
         let stone = if self.current_player { 
-            crate::engine::board::Stone::Black 
+            Stone::Black 
         } else { 
-            crate::engine::board::Stone::White 
+            Stone::White 
         };
         
-        if !self.board.place_stone(row, col, stone) {
-            // Undo the state change
-            self.history.pop();
-            return Err("Invalid move position".to_string());
+        match self.board.place_stone(row, col, stone) {
+            Ok(()) => {
+                // Update captured stones count
+                let [black_captured, white_captured] = self.board.get_captured();
+                self.captured_stones[0] = black_captured as u32;
+                self.captured_stones[1] = white_captured as u32;
+                
+                // Switch players
+                self.current_player = !self.current_player;
+                
+                Ok(())
+            },
+            Err(e) => {
+                // Undo the state change
+                self.history.pop();
+                Err(e)
+            }
         }
-        
-        // Switch players
-        self.current_player = !self.current_player;
-        
-        Ok(())
     }
     
     /// Undoes the last move
