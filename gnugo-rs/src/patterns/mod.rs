@@ -8,12 +8,14 @@ pub mod pattern_matching;
 pub mod pattern_transform;
 pub mod pattern_helpers;
 pub mod pattern_matcher_impl;
+pub mod pattern_loader;
 
 pub use pattern_database::PatternDatabase;
 pub use pattern_matching::PatternMatcher;
 pub use pattern_transform::Transformation;
 pub use pattern_helpers::{PatternConstraint, move_allowed, on_board_after_transform};
 pub use pattern_matcher_impl::find_patterns_at;
+pub use pattern_loader::{load_database, load_all_databases, database_exists};
 
 /// Represents a pattern value
 #[derive(Debug, Clone, Copy)]

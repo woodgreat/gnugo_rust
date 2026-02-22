@@ -5,7 +5,7 @@
 
 use crate::engine::board::{Board, Stone};
 use crate::patterns::{
-    PatternDatabase, PatternMatchResult, PatVal,
+    PatternDatabase, PatternMatchResult,
     pattern_transform::Transformation,
     pattern_helpers::PatternConstraint,
 };
@@ -14,7 +14,7 @@ use crate::patterns::{
 pub struct PatternMatcher<'a> {
     board: &'a Board,
     db: &'a PatternDatabase,
-    callback: &'a dyn Fn(PatternMatchResult),
+    callback: &'a mut dyn FnMut(PatternMatchResult),
     constraints: PatternConstraint,
 }
 
@@ -22,7 +22,7 @@ impl<'a> PatternMatcher<'a> {
     pub fn new(
         board: &'a Board, 
         db: &'a PatternDatabase,
-        callback: &'a dyn Fn(PatternMatchResult),
+        callback: &'a mut dyn FnMut(PatternMatchResult),
         constraints: PatternConstraint,
     ) -> Self {
         Self {
@@ -34,7 +34,7 @@ impl<'a> PatternMatcher<'a> {
     }
 
     /// Main pattern matching function
-    pub fn match_all_positions(&self) {
+    pub fn match_all_positions(&mut self) {
         let size = self.board.size();
         
         for y in 0..size {
@@ -48,7 +48,7 @@ impl<'a> PatternMatcher<'a> {
         }
     }
 
-    fn match_at_position(&self, x: usize, y: usize) {
+    fn match_at_position(&mut self, x: usize, y: usize) {
         let stone = self.board.get_stone(x, y);
         if stone == Stone::Empty {
             return;
@@ -73,7 +73,7 @@ impl<'a> PatternMatcher<'a> {
         }
     }
 
-    fn pattern_fits(&self, x: usize, y: usize, pattern_id: u32) -> Option<Transformation> {
+    fn pattern_fits(&self, _x: usize, _y: usize, _pattern_id: u32) -> Option<Transformation> {
         // Get pattern info from database
         // For now just return Identity for demonstration
         Some(Transformation::Identity)
@@ -88,10 +88,10 @@ pub fn find_patterns_at(
     db: &PatternDatabase,
 ) -> Vec<PatternMatchResult> {
     let mut results = Vec::new();
-    let callback = |res: PatternMatchResult| results.push(res);
+    let mut callback = |res: PatternMatchResult| results.push(res);
     let constraints = PatternConstraint::new(0, board.size(), 1);
     
-    let matcher = PatternMatcher::new(board, db, &callback, constraints);
+    let mut matcher = PatternMatcher::new(board, db, &mut callback, constraints);
     matcher.match_at_position(x, y);
     
     results

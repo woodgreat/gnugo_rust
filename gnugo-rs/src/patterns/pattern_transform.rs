@@ -58,12 +58,11 @@ pub fn patterns_match(
     let size = board.size();
     
     'trans: for &trans in transformations {
-        let mut matched = true;
+        let matched = true;
         
         for &(x, y, expected) in pattern {
             let (tx, ty) = trans.apply(x, y, size);
             if board.get_stone(tx, ty) != expected {
-                matched = false;
                 continue 'trans;
             }
         }

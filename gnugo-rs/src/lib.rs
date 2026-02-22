@@ -3,8 +3,10 @@
 
 //! GNU Go Rust Rewrite (gnugo-rs) - Core Library
 
+
 pub mod engine;
 pub mod patterns;
+pub mod ui;
 
 #[cfg(test)]
 mod tests {

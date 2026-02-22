@@ -7,7 +7,9 @@ use super::{PatternDatabase, PatternMatchResult, PatternType, PatVal};
 use crate::patterns::pattern_database::PatternDatabases;
 use crate::engine::board::Board;
 use crate::engine::board::Stone;
+use crate::patterns::pattern_transform::Transformation;
 use std::collections::HashMap;
+use std::io;
 
 /// Pattern matcher structure
 pub struct PatternMatcher {
@@ -25,7 +27,7 @@ impl PatternMatcher {
     }
     
     /// Loads all pattern databases
-    pub fn load_databases(&mut self) -> Result<(), String> {
+    pub fn load_databases(&mut self) -> io::Result<()> {
         self.databases.load_all()
     }
     
@@ -88,6 +90,7 @@ impl PatternMatcher {
                         pattern_id: *pattern_id,
                         value: val.value,
                         position: (row, col),
+                        transform: Transformation::Identity,
                     });
                 }
             }

@@ -5,6 +5,8 @@
 
 use super::PatVal;
 use std::collections::HashMap;
+use std::io;
+use crate::patterns::pattern_loader::load_database;
 
 /// Pattern database structure
 pub struct PatternDatabase {
@@ -23,16 +25,14 @@ impl PatternDatabase {
         }
     }
     
+    /// Loads a pattern database from a file
+    pub fn load_from_file(path: &str, pattern_type: super::PatternType) -> io::Result<Self> {
+        load_database(path, pattern_type)
+    }
+    
     /// Adds a pattern to the database
     pub fn add_pattern(&mut self, pattern_id: u32, values: Vec<PatVal>) {
         self.patterns.insert(pattern_id, values);
-    }
-    
-    /// Loads patterns from a database file
-    pub fn load_from_file(&mut self, _path: &str) -> Result<(), String> {
-        // In a real implementation, this would read from a .db file
-        // For now, we'll just return Ok(()) as a placeholder
-        Ok(())
     }
     
     /// Saves patterns to a database file
@@ -90,12 +90,12 @@ impl PatternDatabases {
     }
     
     /// Loads all pattern databases
-    pub fn load_all(&mut self) -> Result<(), String> {
-        self.attack_db.load_from_file("patterns/attack.db")?;
-        self.defense_db.load_from_file("patterns/defense.db")?;
-        self.fuseki_db.load_from_file("patterns/fuseki.db")?;
-        self.joseki_db.load_from_file("patterns/joseki.db")?;
-        self.endgame_db.load_from_file("patterns/endgame.db")?;
+    pub fn load_all(&mut self) -> io::Result<()> {
+        self.attack_db = PatternDatabase::load_from_file("patterns/attack.db", super::PatternType::Attack)?;
+        self.defense_db = PatternDatabase::load_from_file("patterns/defense.db", super::PatternType::Defense)?;
+        self.fuseki_db = PatternDatabase::load_from_file("patterns/fuseki.db", super::PatternType::Fuseki)?;
+        self.joseki_db = PatternDatabase::load_from_file("patterns/joseki.db", super::PatternType::Joseki)?;
+        self.endgame_db = PatternDatabase::load_from_file("patterns/endgame.db", super::PatternType::Endgame)?;
         Ok(())
     }
     
