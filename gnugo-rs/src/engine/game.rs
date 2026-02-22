@@ -4,7 +4,6 @@
 //! Game logic and state management
 
 use crate::engine::board::Board;
-use crate::engine::move_generation::Move;
 
 /// Represents the state of a Go game
 #[derive(Debug, Clone)]
