@@ -131,7 +131,7 @@ impl Evaluator {
                 let distance = (r as i32 - row as i32).abs() + (c as i32 - col as i32).abs();
                 if distance <= 3 && board.get_stone(r, c) == color {
                     // Influence value decreases with distance
-                    influence += (4 - distance as i32);
+                    influence += 4 - distance as i32;
                 }
             }
         }
