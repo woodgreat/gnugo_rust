@@ -56,10 +56,10 @@ impl Game {
         
         match self.board.place_stone(row, col, stone) {
             Ok(()) => {
-                // Update captured stones count
-                let [black_captured, white_captured] = self.board.get_captured();
-                self.captured_stones[0] = black_captured as u32;
-                self.captured_stones[1] = white_captured as u32;
+                // Update captured stones count (temporarily disabled)
+                // let [black_captured, white_captured] = self.board.get_captured();
+                // self.captured_stones[0] = black_captured as u32;
+                // self.captured_stones[1] = white_captured as u32;
                 
                 // Switch players
                 self.current_player = !self.current_player;
@@ -69,7 +69,7 @@ impl Game {
             Err(e) => {
                 // Undo the state change
                 self.history.pop();
-                Err(e)
+                Err(e.to_string())
             }
         }
     }

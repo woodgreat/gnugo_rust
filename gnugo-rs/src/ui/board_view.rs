@@ -28,7 +28,13 @@ pub fn draw_board(board: &Board) {
             match board.get_stone(x, internal_row) {
                 Stone::Black => print!(" ○ "),
                 Stone::White => print!(" ● "),
-                Stone::Empty => print!(" · "),
+                Stone::Empty => {
+                    if board.is_hoshi_point(x, internal_row) {
+                        print!(" + ");
+                    } else {
+                        print!(" · ");
+                    }
+                }
             }
         }
         

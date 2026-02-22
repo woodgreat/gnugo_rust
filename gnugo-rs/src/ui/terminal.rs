@@ -24,6 +24,7 @@ impl TerminalUI {
         loop {
             self.clear_screen()?;
             draw_board(&self.board);
+            println!();
             println!("Current player: {:?}", self.current_player);
             
             print!("Move (e.g. A1) or 'quit' to exit: ");
