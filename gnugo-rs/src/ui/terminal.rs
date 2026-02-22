@@ -76,13 +76,23 @@ fn parse_move(input: &str) -> Option<(usize, usize)> {
     let mut chars = input.chars();
     let col_char = chars.next()?.to_ascii_uppercase();
     
-    // Convert column letter to index (A=0, B=1, ...)
-    let col = (col_char as u8 - b'A') as usize;
+    // Skip 'I' as in original GNU Go
+    if col_char == 'I' {
+        return None;
+    }
     
-    // Parse row number
+    // Convert column letter to index (A=0, B=1, ...) 
+    let mut x = (col_char as u8 - b'A') as usize;
+    
+    // If letter is after 'I', subtract 1 (skip I)
+    if col_char > 'I' {
+        x = x.saturating_sub(1);
+    }
+    
+    // Parse row number (1-based)
     let row_str: String = chars.collect();
-    let row: usize = row_str.parse().ok()?; 
+    let y: usize = row_str.parse().ok()?; 
     
-    // Convert 1-based to 0-based indexing
-    Some((col, row.saturating_sub(1)))
+    // Convert 1-based to 0-based indexing, return as (row, col) = (y, x)
+    Some((y.saturating_sub(1), x))
 }
