@@ -3,71 +3,124 @@
 
 //! Pattern database management
 
-/// Pattern database for storing and retrieving Go patterns
+use super::PatVal;
+use std::collections::HashMap;
+
+/// Pattern database structure
 pub struct PatternDatabase {
-    /// Database of patterns indexed by type
-    patterns: std::collections::HashMap<String, Vec<PatternEntry>>,
-}
-
-/// Entry in the pattern database
-#[derive(Debug, Clone)]
-pub struct PatternEntry {
-    /// Pattern identifier
-    pub id: String,
-    /// Pattern data
-    pub data: Vec<u8>,
-    /// Pattern metadata
-    pub metadata: PatternMetadata,
-}
-
-/// Metadata for patterns
-#[derive(Debug, Clone)]
-pub struct PatternMetadata {
-    /// Pattern type
-    pub pattern_type: String,
-    /// Creation timestamp
-    pub created_at: u64,
-    /// Last modified timestamp
-    pub modified_at: u64,
-    /// Pattern difficulty level
-    pub difficulty: u32,
+    patterns: HashMap<u32, Vec<PatVal>>,
+    pattern_type: super::PatternType,
+    name: String,
 }
 
 impl PatternDatabase {
     /// Creates a new pattern database
-    pub fn new() -> Self {
+    pub fn new(name: &str, pattern_type: super::PatternType) -> Self {
         PatternDatabase {
-            patterns: std::collections::HashMap::new(),
+            patterns: HashMap::new(),
+            pattern_type,
+            name: name.to_string(),
         }
     }
     
-    /// Inserts a pattern into the database
-    pub fn insert_pattern(&mut self, entry: PatternEntry) {
-        self.patterns
-            .entry(entry.metadata.pattern_type.clone())
-            .or_insert_with(Vec::new)
-            .push(entry);
+    /// Adds a pattern to the database
+    pub fn add_pattern(&mut self, pattern_id: u32, values: Vec<PatVal>) {
+        self.patterns.insert(pattern_id, values);
     }
     
-    /// Retrieves patterns of a specific type
-    pub fn get_patterns_by_type(&self, pattern_type: &str) -> Option<&Vec<PatternEntry>> {
-        self.patterns.get(pattern_type)
+    /// Loads patterns from a database file
+    pub fn load_from_file(&mut self, _path: &str) -> Result<(), String> {
+        // In a real implementation, this would read from a .db file
+        // For now, we'll just return Ok(()) as a placeholder
+        Ok(())
     }
     
-    /// Updates a pattern in the database
-    pub fn update_pattern(&mut self, id: &str, new_data: Vec<u8>) -> bool {
-        for (_, patterns) in self.patterns.iter_mut() {
-            for entry in patterns.iter_mut() {
-                if entry.id == id {
-                    entry.data = new_data;
-                    entry.metadata.modified_at = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_secs();
-                    return true;
-                }
-            }
+    /// Saves patterns to a database file
+    pub fn save_to_file(&self, _path: &str) -> Result<(), String> {
+        // In a real implementation, this would write to a .db file
+        // For now, we'll just return Ok(()) as a placeholder
+        Ok(())
+    }
+    
+    /// Gets the pattern values for a given pattern ID
+    pub fn get_pattern_values(&self, pattern_id: u32) -> Option<&Vec<PatVal>> {
+        self.patterns.get(&pattern_id)
+    }
+    
+    /// Gets the number of patterns in the database
+    pub fn get_pattern_count(&self) -> usize {
+        self.patterns.len()
+    }
+    
+    /// Gets the pattern type
+    pub fn get_pattern_type(&self) -> super::PatternType {
+        self.pattern_type
+    }
+    
+    /// Gets the database name
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+    
+    /// Gets all patterns in the database
+    pub fn get_patterns(&self) -> &HashMap<u32, Vec<PatVal>> {
+        &self.patterns
+    }
+}
+
+/// Predefined pattern databases
+pub struct PatternDatabases {
+    attack_db: PatternDatabase,
+    defense_db: PatternDatabase,
+    fuseki_db: PatternDatabase,
+    joseki_db: PatternDatabase,
+    endgame_db: PatternDatabase,
+}
+
+impl PatternDatabases {
+    /// Creates a new set of pattern databases
+    pub fn new() -> Self {
+        PatternDatabases {
+            attack_db: PatternDatabase::new("attack", super::PatternType::Attack),
+            defense_db: PatternDatabase::new("defense", super::PatternType::Defense),
+            fuseki_db: PatternDatabase::new("fuseki", super::PatternType::Fuseki),
+            joseki_db: PatternDatabase::new("joseki", super::PatternType::Joseki),
+            endgame_db: PatternDatabase::new("endgame", super::PatternType::Endgame),
         }
-        false
+    }
+    
+    /// Loads all pattern databases
+    pub fn load_all(&mut self) -> Result<(), String> {
+        self.attack_db.load_from_file("patterns/attack.db")?;
+        self.defense_db.load_from_file("patterns/defense.db")?;
+        self.fuseki_db.load_from_file("patterns/fuseki.db")?;
+        self.joseki_db.load_from_file("patterns/joseki.db")?;
+        self.endgame_db.load_from_file("patterns/endgame.db")?;
+        Ok(())
+    }
+    
+    /// Gets the attack pattern database
+    pub fn get_attack_db(&self) -> &PatternDatabase {
+        &self.attack_db
+    }
+    
+    /// Gets the defense pattern database
+    pub fn get_defense_db(&self) -> &PatternDatabase {
+        &self.defense_db
+    }
+    
+    /// Gets the fuseki pattern database
+    pub fn get_fuseki_db(&self) -> &PatternDatabase {
+        &self.fuseki_db
+    }
+    
+    /// Gets the joseki pattern database
+    pub fn get_joseki_db(&self) -> &PatternDatabase {
+        &self.joseki_db
+    }
+    
+    /// Gets the endgame pattern database
+    pub fn get_endgame_db(&self) -> &PatternDatabase {
+        &self.endgame_db
     }
 }
