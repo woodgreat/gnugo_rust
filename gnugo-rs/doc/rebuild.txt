@@ -3,11 +3,11 @@
 # Developers: wood&zulu_ai
 
 ## 1. 项目结构规范
-gnugo_rust/
+gnugo_rs/
 ├── ref/                # 原版C代码基准（只读参考）
 ├── doc/                # 文档（从gnugo继承）
 ├── playground/         # 实验沙盒
-└── gnugo-rs/           # 主代码库
+└── gnugo_rs/           # 主代码库
     ├── Cargo.toml      # 项目配置
     ├── COPYING         # GPLv3许可证
     ├── AUTHORS         # 开发者名单（wood&zulu_ai）
@@ -16,7 +16,15 @@ gnugo_rust/
         ├── main.rs     # 入口
         ├── lib.rs      # 模块导出
         ├── engine/     # 核心引擎（对应原engine/）
+        │   ├── mod.rs
+        │   ├── board.rs
+        │   ├── game.rs
+        │   ├── move_generation.rs
+        │   └── evaluation.rs
         └── patterns/   # 模式匹配（待开发）
+            ├── mod.rs
+            ├── pattern_matching.rs
+            └── pattern_database.rs
 
 ## 2. 许可证合规
 - 所有文件必须包含版权声明：
@@ -36,4 +44,6 @@ This is a derivative work of GNU Go (git://git.savannah.gnu.org/gnugo.git)
 ✅ 许可证文件  
 ✅ 开发者署名  
 ✅ 代码版权声明  
-⚠️ 需补充文档继承声明
+✅ 项目结构
+✅ Cargo.toml 配置
+✅ 测试文件
