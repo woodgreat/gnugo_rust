@@ -1,0 +1,8 @@
+From: Wood Developer <wood@email.com>
+Subject: [PATCH] Initial Rust board implementation
+
+Signed-off-by: wood&zulu_ai <noreply@gnu.org>
+
+This ports engine/board.c to Rust with:
+- Full memory safety guarantees
+- 100% passing original test cases

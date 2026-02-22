@@ -1,0 +1,7 @@
+# 添加在CFLAGS定义附近
+CFLAGS = -g -O2 -Wall -W -Wpointer-arith -Wbad-function-cast -Wcast-qual \
+         -Wcast-align -Wwrite-strings -Wstrict-prototypes \
+         -Wmissing-prototypes -Wmissing-declarations -Wundef \
+         -Wdeclaration-after-statement -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
+         -DHAVE_VSNPRINTF -I. -Iutils -Isgf -Iengine -Ipatterns -DVERSION=\"3.8\" \
+         -Wno-missing-field-initializers -Wno-unused-parameter

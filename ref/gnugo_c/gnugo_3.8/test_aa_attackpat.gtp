@@ -1,0 +1,4 @@
+loadsgf games/example.sgf  # 使用任意测试SGF文件
+showboard
+all_patterns               # 列出所有已加载模式
+quit
