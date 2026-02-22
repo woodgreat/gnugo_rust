@@ -67,6 +67,16 @@ impl Board {
         self.captured
     }
     
+    /// Clears the board (makes all positions empty)
+    pub fn clear_board(&mut self) {
+        for row in 0..self.size {
+            for col in 0..self.size {
+                self.grid[row][col] = Stone::Empty;
+            }
+        }
+        self.captured = [0, 0];
+    }
+    
     /// Places a stone at the given position and handles captures
     pub fn place_stone(&mut self, row: usize, col: usize, stone: Stone) -> Result<(), String> {
         if row >= self.size || col >= self.size {
@@ -211,5 +221,49 @@ impl Board {
         }
         
         liberties
+    }
+    
+    /// Calculates the number of liberties for a single stone position
+    pub fn count_liberties(&self, row: usize, col: usize) -> usize {
+        if row >= self.size || col >= self.size || self.grid[row][col] == Stone::Empty {
+            return 0;
+        }
+        
+        let mut liberties = 0;
+        
+        // Check up
+        if row > 0 && self.grid[row-1][col] == Stone::Empty {
+            liberties += 1;
+        }
+        
+        // Check down
+        if row < self.size - 1 && self.grid[row+1][col] == Stone::Empty {
+            liberties += 1;
+        }
+        
+        // Check left
+        if col > 0 && self.grid[row][col-1] == Stone::Empty {
+            liberties += 1;
+        }
+        
+        // Check right
+        if col < self.size - 1 && self.grid[row][col+1] == Stone::Empty {
+            liberties += 1;
+        }
+        
+        liberties
+    }
+    
+    /// Returns the number of stones of a particular color on the board
+    pub fn stones_on_board(&self, color: Stone) -> usize {
+        let mut count = 0;
+        for row in 0..self.size {
+            for col in 0..self.size {
+                if self.grid[row][col] == color {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 }

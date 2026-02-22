@@ -85,4 +85,22 @@ impl Game {
             None
         }
     }
+    
+    /// Returns the current player
+    pub fn current_player(&self) -> Stone {
+        if self.current_player {
+            Stone::Black
+        } else {
+            Stone::White
+        }
+    }
+    
+    /// Returns the number of stones captured by a player
+    pub fn captured(&self, color: Stone) -> u32 {
+        match color {
+            Stone::Black => self.captured_stones[0],
+            Stone::White => self.captured_stones[1],
+            _ => 0,
+        }
+    }
 }
