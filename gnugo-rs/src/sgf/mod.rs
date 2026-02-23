@@ -277,30 +277,29 @@ impl SGFHandler {
         }
     }
 
-    /// Convert game to SGF format with move history
+    /// Convert game to SGF format with move history (aligned with GNU Go behavior)
     pub fn game_to_sgf(&self, game: &Game, filename: Option<&str>) -> Result<String, String> {
         let mut sgf = String::new();
         
-        // SGF header
+        // SGF header (matches GNU Go format)
         sgf.push_str("(;FF[4]GM[1]SZ[");
         sgf.push_str(&game.board.size().to_string());
         sgf.push_str("]KM[");
         sgf.push_str(&game.komi.to_string());
-        sgf.push_str("]\n");
+        
+        // Add GNU Go version information (like original)
+        sgf.push_str("]GN[GNU Go Rust load and print]\n");
 
-        // Export current board state as setup properties
+        // Export current board state as setup properties (aligned with GNU Go)
         if game.board.size() > 0 {
             let mut black_stones = Vec::new();
             let mut white_stones = Vec::new();
-            
-            println!("DEBUG: Board size: {}", game.board.size());
             
             for y in 0..game.board.size() {
                 for x in 0..game.board.size() {
                     let stone = game.board.get_stone(x, y);
                     if stone != Stone::Empty {
                         let point = format_sgf_point(x, y);
-                        println!("DEBUG: Stone at ({},{}) = {:?} -> {}", x, y, stone, point);
                         match stone {
                             Stone::Black => black_stones.push(point),
                             Stone::White => white_stones.push(point),
@@ -310,30 +309,33 @@ impl SGFHandler {
                 }
             }
             
-            println!("DEBUG: Black stones: {:?}", black_stones);
-            println!("DEBUG: White stones: {:?}", white_stones);
-            
+            // Add stones in separate properties (like GNU Go)
             if !black_stones.is_empty() {
                 sgf.push_str(&format!(";AB[{}]", black_stones.join("][")));
-                println!("DEBUG: Added AB property");
             }
             if !white_stones.is_empty() {
                 sgf.push_str(&format!(";AW[{}]", white_stones.join("][")));
-                println!("DEBUG: Added AW property");
             }
+            
+            // Add player to move (PL property like GNU Go)
+            // Use current player from game state (true = black, false = white)
+            let next_player = if game.current_player { "B" } else { "W" };
+            sgf.push_str(&format!(";PL[{}]", next_player));
+            
             sgf.push('\n');
         }
 
         sgf.push_str(")\n");
 
-        println!("DEBUG: Final SGF content:\n{}", sgf);
-
-        // Write to file if filename provided
+        // Write to file if filename provided (matches GNU Go behavior)
         if let Some(filename) = filename {
-            let mut file = File::create(filename)
-                .map_err(|e| format!("Cannot create file '{}': {}", filename, e))?;
-            file.write_all(sgf.as_bytes())
-                .map_err(|e| format!("Write error to '{}': {}", filename, e))?;
+            if filename != "-" {  // GNU Go uses "-" for stdout
+                let mut file = File::create(filename)
+                    .map_err(|e| format!("Cannot create file '{}': {}", filename, e))?;
+                file.write_all(sgf.as_bytes())
+                    .map_err(|e| format!("Write error to '{}': {}", filename, e))?;
+                return Ok("".to_string());  // Empty string when writing to file
+            }
         }
 
         Ok(sgf)
