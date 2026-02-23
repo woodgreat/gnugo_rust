@@ -2,20 +2,19 @@
 //! License: GPL-3.0-or-later
 
 use std::io::{self, Write};
-use crate::engine::board::{Board, Stone};
+use crate::engine::game::Game;
+use crate::engine::board::Stone;
 use super::board_view::draw_board;
 
 /// Terminal-based interface
 pub struct TerminalUI {
-    board: Board,
-    current_player: Stone,
+    game: Game,
 }
 
 impl TerminalUI {
     pub fn new(size: usize) -> Self {
         TerminalUI {
-            board: Board::new(size),
-            current_player: Stone::Black,
+            game: Game::new(size),
         }
     }
 
@@ -23,41 +22,67 @@ impl TerminalUI {
     pub fn run(&mut self) -> io::Result<()> {
         loop {
             self.clear_screen()?;
-            draw_board(&self.board);
+            draw_board(&self.game.board);
             println!();
-            println!("Current player: {:?}", self.current_player);
             
-            print!("Move (e.g. A1) or 'quit' to exit: ");
+            // Display game status
+            if self.game.is_game_over() {
+                println!("Game Status: {}", self.game.status());
+                if let Some(winner) = self.game.winner() {
+                    println!("Winner: {:?}", winner);
+                } else {
+                    println!("Result: Tie");
+                }
+                println!("Captured - Black: {}, White: {}", 
+                    self.game.captured(Stone::Black),
+                    self.game.captured(Stone::White));
+                println!();
+                print!("Press Enter to exit...");
+                io::stdout().flush()?;
+                io::stdin().read_line(&mut String::new())?;
+                break;
+            }
+            
+            println!("Current player: {:?}", self.game.current_player());
+            println!("Pass count: {}", self.game.pass_count());
+            println!("Commands: move (e.g. A1), pass, resign, quit");
+            
+            print!("Enter command: ");
             io::stdout().flush()?;
             
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
             
-            let input = input.trim();
-            if input.to_lowercase() == "quit" {
-                break;
-            }
+            let input = input.trim().to_lowercase();
             
-            if let Some((x, y)) = parse_move(input) {
-                if x < self.board.size() && y < self.board.size() {
-                    if self.board.place_stone(y, x, self.current_player).is_ok() {
-                        // Switch players
-                        self.current_player = match self.current_player {
-                            Stone::Black => Stone::White,
-                            Stone::White => Stone::Black,
-                            Stone::Empty => Stone::Black, // Should not happen
-                        };
-                    } else {
-                        println!("Invalid move!");
+            match input.as_str() {
+                "quit" => break,
+                "pass" => {
+                    if let Err(e) = self.game.pass() {
+                        println!("{}", e);
                         std::thread::sleep(std::time::Duration::from_secs(1));
                     }
-                } else {
-                    println!("Position out of bounds!");
-                    std::thread::sleep(std::time::Duration::from_secs(1));
+                },
+                "resign" => {
+                    if let Err(e) = self.game.resign() {
+                        println!("{}", e);
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                    }
+                },
+                _ => {
+                    if let Some((x, y)) = parse_move(&input) {
+                        match self.game.make_move(y, x) {
+                            Ok(()) => {},
+                            Err(e) => {
+                                println!("{}", e);
+                                std::thread::sleep(std::time::Duration::from_secs(1));
+                            }
+                        }
+                    } else {
+                        println!("Invalid command! Use: A1, pass, resign, quit");
+                        std::thread::sleep(std::time::Duration::from_secs(1));
+                    }
                 }
-            } else {
-                println!("Invalid input format! Use A1, B2, etc.");
-                std::thread::sleep(std::time::Duration::from_secs(1));
             }
         }
         Ok(())
