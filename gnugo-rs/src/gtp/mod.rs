@@ -6,10 +6,12 @@
 use std::io::{self, BufRead, Write};
 use crate::engine::game::Game;
 use crate::engine::board::Stone;
+use crate::engine::eye::EyeAnalyzer;
 
 /// GTP protocol handler
 pub struct GTPHandler {
     game: Game,
+    eye_analyzer: EyeAnalyzer,
 }
 
 impl GTPHandler {
@@ -17,6 +19,7 @@ impl GTPHandler {
     pub fn new(size: usize) -> Self {
         GTPHandler {
             game: Game::new(size),
+            eye_analyzer: EyeAnalyzer::new(),
         }
     }
 
@@ -71,6 +74,8 @@ impl GTPHandler {
             "list_stones" => self.list_stones(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "countlib" => self.countlib(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "findlib" => self.findlib(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
+            "ladder_attack" => self.ladder_attack(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
+            "eye_data" => self.eye_data(if cmd_parts.len() > 2 { (cmd_parts[1], cmd_parts[2]) } else { ("", "") }),
             "quit" => "quit".to_string(),
             "list_commands" => self.list_commands(),
             "showboard" => self.showboard(),
@@ -133,7 +138,7 @@ impl GTPHandler {
             "final_score", "time_settings", "quit",
             "list_commands", "showboard", "known_command",
             "is_legal", "list_stones", "countlib", "findlib",
-            "echo", "echo_err",
+            "echo", "echo_err", "ladder_attack", "eye_data",
         ];
         if commands.contains(&command) { "true".to_string() } else { "false".to_string() }
     }
@@ -260,16 +265,6 @@ impl GTPHandler {
         stones.join("\n")
     }
 
-    fn list_commands(&self) -> String {
-        vec![
-            "protocol_version", "name", "version", "boardsize", "clear_board",
-            "komi", "get_komi", "play", "genmove", "genmove_black", "genmove_white",
-            "undo", "captures", "final_score", "time_settings",
-            "is_legal", "list_stones", "quit", "list_commands", "showboard", "known_command",
-            "countlib", "findlib", "echo", "echo_err",
-        ].join("\n")
-    }
-
     fn countlib(&self, move_str: &str) -> String {
         if let Some((x, y)) = parse_gtp_move(move_str, self.game.board.size()) {
             let liberties = self.game.board.count_liberties(x, y);
@@ -286,6 +281,74 @@ impl GTPHandler {
         } else {
             "? invalid move".to_string()
         }
+    }
+
+    /// Implementation of ladder_attack command
+    fn ladder_attack(&self, move_str: &str) -> String {
+        if let Some((x, y)) = parse_gtp_move(move_str, self.game.board.size()) {
+            if self.game.board.get_stone(x, y) == Stone::Empty {
+                return "? vertex must not be empty".to_string();
+            }
+            
+            let liberties = self.game.board.count_liberties(x, y);
+            if liberties != 2 {
+                return "? string must have exactly 2 liberties".to_string();
+            }
+            
+            // Use eye analyzer to find attack point
+            if let Some(attack_point) = self.eye_analyzer.find_ladder_attack_point(&self.game.board, x, y) {
+                format!("1 {}", format_move(attack_point.0, attack_point.1))
+            } else {
+                "0".to_string()
+            }
+        } else {
+            "? invalid move".to_string()
+        }
+    }
+
+    /// Implementation of eye_data command
+    fn eye_data(&self, (color, move_str): (&str, &str)) -> String {
+        let stone_color = match color.to_lowercase().as_str() {
+            "black" => Stone::Black,
+            "white" => Stone::White,
+            _ => return "? invalid color".to_string(),
+        };
+        
+        if let Some((x, y)) = parse_gtp_move(move_str, self.game.board.size()) {
+            let eyes = self.eye_analyzer.analyze_eyes(&self.game.board, stone_color);
+            
+            // Find eye data for the specified position
+            for eye in eyes {
+                if eye.origin == (x, y) {
+                    return format!(
+                        "origin {} {}\ncolor {}\nesize {}\nmsize {}\nvalue {}\nmarginal {}\nneighbors {}\nmarginal_neighbors {}",
+                        eye.origin.0, eye.origin.1, 
+                        match eye.color {
+                            Stone::Black => "black",
+                            Stone::White => "white",
+                            Stone::Empty => "empty",
+                        },
+                        eye.esize, eye.msize, eye.value.to_string(), 
+                        eye.marginal as u8, eye.neighbors, eye.marginal_neighbors
+                    );
+                }
+            }
+            
+            "? no eye data for this position".to_string()
+        } else {
+            "? invalid move".to_string()
+        }
+    }
+
+    fn list_commands(&self) -> String {
+        vec![
+            "protocol_version", "name", "version", "boardsize", "clear_board",
+            "komi", "get_komi", "play", "genmove", "genmove_black", "genmove_white",
+            "undo", "captures", "final_score", "time_settings",
+            "is_legal", "list_stones", "quit", "list_commands", "showboard", "known_command",
+            "countlib", "findlib", "echo", "echo_err",
+            "ladder_attack", "eye_data",
+        ].join("\n")
     }
 
     fn showboard(&self) -> String {

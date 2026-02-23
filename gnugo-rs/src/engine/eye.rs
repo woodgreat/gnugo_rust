@@ -1,141 +1,187 @@
 //! Copyright (C) 2026 wood&zulu_ai
 //! License: GPL-3.0-or-later
 
-//! Eye pattern recognition
+//! Eye pattern detection and analysis
 
-use crate::engine::board::Board;
-use crate::engine::board::Stone;
+use super::board::{Board, Stone};
 
-/// Represents an eye vertex pattern
+/// Eye pattern data structure
+#[derive(Debug, Clone)]
+pub struct EyeData {
+    pub origin: (usize, usize),          // Origin of the eye space
+    pub color: Stone,                     // Color that controls the eye
+    pub esize: usize,                     // Number of eye intersections
+    pub msize: usize,                     // Number of marginal intersections
+    pub value: EyeValue,                  // Eye value
+    pub marginal: bool,                   // Is this a marginal eye?
+    pub neighbors: usize,                 // Number of neighboring stones
+    pub marginal_neighbors: usize,        // Number of marginal neighbors
+}
+
+/// Eye value representation
 #[derive(Debug, Clone, Copy)]
-pub struct EyeVertex {
-    pub x: i32,
-    pub y: i32,
-    pub type_code: i32,
-    pub flags: i32,
-    pub neighbors: [i32; 4],
+pub struct EyeValue {
+    pub min_eyes: u8,
+    pub max_eyes: u8,
+    pub is_eye: bool,
 }
 
-impl EyeVertex {
-    pub fn new(x: i32, y: i32, type_code: i32, flags: i32, neighbors: [i32; 4]) -> Self {
-        EyeVertex {
-            x,
-            y,
-            type_code,
-            flags,
-            neighbors,
+impl EyeValue {
+    pub fn to_string(&self) -> String {
+        if self.is_eye {
+            format!("{}.{}", self.min_eyes, self.max_eyes)
+        } else {
+            "0.0".to_string()
         }
     }
 }
 
-/// Eye pattern database
-pub struct EyeDatabase {
-    eye_patterns: Vec<Vec<EyeVertex>>,
+/// Half-eye pattern data structure
+#[derive(Debug, Clone)]
+pub struct HalfEyeData {
+    pub value: f32,                       // Topological eye value
+    pub eye_type: HalfEyeType,            // Type of half-eye
+    pub attack_point: Option<(usize, usize)>, // Attack point if any
+    pub defense_point: Option<(usize, usize)>, // Defense point if any
 }
 
-impl EyeDatabase {
-    /// Creates a new eye database
+/// Half-eye types
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HalfEyeType {
+    Normal,
+    Marginal,
+    False,
+    Half,
+    Unknown,
+}
+
+/// Eye pattern analyzer
+pub struct EyeAnalyzer {
+    // Configuration and state for eye detection
+}
+
+impl EyeAnalyzer {
     pub fn new() -> Self {
-        EyeDatabase {
-            eye_patterns: Vec::new(),
-        }
+        EyeAnalyzer {}
     }
-    
-    /// Loads eye patterns from a database file
-    pub fn load_from_file(&mut self, path: &str) -> Result<(), String> {
-        // In a real implementation, this would load eye patterns from a file
-        // For now, we'll add some predefined patterns
-        self.add_eye_pattern(&[
-            EyeVertex::new(0, 0, 3, 0, [-1, -1, -1, -1]),
-        ]);
-        
-        self.add_eye_pattern(&[
-            EyeVertex::new(1, 0, 2, 0, [-1, -1, -1, -1]),
-        ]);
-        
-        self.add_eye_pattern(&[
-            EyeVertex::new(1, 0, 1, 0, [-1, -1, -1, -1]),
-        ]);
-        
-        self.add_eye_pattern(&[
-            EyeVertex::new(0, 0, 3, 1, [1, -1, -1, -1]),
-            EyeVertex::new(0, 0, 3, 1, [0, -1, -1, -1]),
-        ]);
-        
-        Ok(())
-    }
-    
-    /// Adds an eye pattern to the database
-    pub fn add_eye_pattern(&mut self, pattern: &[EyeVertex]) {
-        self.eye_patterns.push(pattern.to_vec());
-    }
-    
-    /// Gets the number of eye patterns
-    pub fn get_pattern_count(&self) -> usize {
-        self.eye_patterns.len()
-    }
-}
 
-/// Eye recognizer
-pub struct EyeRecognizer {
-    eye_db: EyeDatabase,
-}
-
-impl EyeRecognizer {
-    /// Creates a new eye recognizer
-    pub fn new() -> Self {
-        EyeRecognizer {
-            eye_db: EyeDatabase::new(),
-        }
-    }
-    
-    /// Loads eye patterns
-    pub fn load_patterns(&mut self) -> Result<(), String> {
-        self.eye_db.load_from_file("patterns/eyes.db")
-    }
-    
-    /// Recognizes eyes on the board
-    pub fn recognize_eyes(&self, board: &Board, color: Stone) -> Vec<(usize, usize)> {
+    /// Analyze eye patterns for the entire board
+    pub fn analyze_eyes(&self, board: &Board, color: Stone) -> Vec<EyeData> {
         let mut eyes = Vec::new();
         let size = board.size();
         
-        for row in 0..size {
-            for col in 0..size {
-                if board.get_stone(row, col) == Stone::Empty && 
-                   self.is_eye(board, row, col, color) {
-                    eyes.push((row, col));
+        // Simple eye detection algorithm
+        for y in 0..size {
+            for x in 0..size {
+                if let Some(eye) = self.detect_eye(board, x, y, color) {
+                    eyes.push(eye);
                 }
             }
         }
         
         eyes
     }
-    
-    /// Checks if a position is an eye for the given color
-    fn is_eye(&self, board: &Board, row: usize, col: usize, color: Stone) -> bool {
-        // Check if the position is empty
-        if board.get_stone(row, col) != Stone::Empty {
+
+    /// Detect if a position is part of an eye
+    fn detect_eye(&self, board: &Board, x: usize, y: usize, color: Stone) -> Option<EyeData> {
+        if board.get_stone(x, y) != Stone::Empty {
+            return None;
+        }
+
+        // Check if this empty point is surrounded by stones of the same color
+        let mut neighbors = 0;
+        let mut enemy_neighbors = 0;
+        let mut empty_neighbors = 0;
+        
+        let directions = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+        for &(dx, dy) in &directions {
+            let nx = x as isize + dx;
+            let ny = y as isize + dy;
+            
+            if nx >= 0 && nx < board.size() as isize && ny >= 0 && ny < board.size() as isize {
+                let nx = nx as usize;
+                let ny = ny as usize;
+                match board.get_stone(nx, ny) {
+                    Stone::Black => {
+                        if color == Stone::Black {
+                            neighbors += 1;
+                        } else {
+                            enemy_neighbors += 1;
+                        }
+                    }
+                    Stone::White => {
+                        if color == Stone::White {
+                            neighbors += 1;
+                        } else {
+                            enemy_neighbors += 1;
+                        }
+                    }
+                    Stone::Empty => empty_neighbors += 1,
+                }
+            }
+        }
+
+        // Simple eye detection logic
+        if neighbors >= 3 && enemy_neighbors == 0 {
+            Some(EyeData {
+                origin: (x, y),
+                color,
+                esize: 1,
+                msize: 0,
+                value: EyeValue {
+                    min_eyes: 1,
+                    max_eyes: 1,
+                    is_eye: true,
+                },
+                marginal: empty_neighbors > 0,
+                neighbors,
+                marginal_neighbors: empty_neighbors,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Check if a move is a ladder attack
+    pub fn is_ladder_attack(&self, board: &Board, x: usize, y: usize) -> bool {
+        // Simple ladder detection: check if a string has exactly 2 liberties
+        // and if attacking it would be effective
+        
+        let stone = board.get_stone(x, y);
+        if stone == Stone::Empty {
             return false;
         }
-        
-        // Check surrounding stones
-        let size = board.size();
-        let mut surrounded = true;
-        
-        // Check all four directions
-        if row > 0 && board.get_stone(row - 1, col) != color {
-            surrounded = false;
+
+        // Count liberties
+        let liberties = board.count_liberties(x, y);
+        if liberties != 2 {
+            return false;
         }
-        if row < size - 1 && board.get_stone(row + 1, col) != color {
-            surrounded = false;
+
+        // TODO: Implement proper ladder analysis
+        // For now, return true for any string with 2 liberties
+        true
+    }
+
+    /// Find attack point for a ladder
+    pub fn find_ladder_attack_point(&self, board: &Board, x: usize, y: usize) -> Option<(usize, usize)> {
+        if !self.is_ladder_attack(board, x, y) {
+            return None;
         }
-        if col > 0 && board.get_stone(row, col - 1) != color {
-            surrounded = false;
+
+        // Find the liberty that would capture the string
+        let liberties = board.find_liberties(x, y);
+        if liberties.is_empty() {
+            return None;
         }
-        if col < size - 1 && board.get_stone(row, col + 1) != color {
-            surrounded = false;
-        }
-        
-        surrounded
+
+        // Return the first liberty as the attack point
+        Some(liberties[0])
+    }
+
+    /// Load eye patterns from file (placeholder)
+    pub fn load_from_file(&mut self, _path: &str) -> Result<(), String> {
+        // TODO: Implement pattern database loading
+        Ok(())
     }
 }
