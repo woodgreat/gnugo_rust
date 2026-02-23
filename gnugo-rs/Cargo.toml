@@ -11,3 +11,4 @@ ko_test = []
 
 [dependencies]
 byteorder = "1.5.0"
+rand = "0.8"

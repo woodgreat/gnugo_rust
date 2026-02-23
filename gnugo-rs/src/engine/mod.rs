@@ -9,3 +9,6 @@ pub mod board;
 pub mod game;
 pub mod move_generation;
 pub mod evaluation;
+pub mod ai;
+pub mod rules;
+pub mod eye;
