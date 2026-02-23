@@ -23,6 +23,8 @@ pub struct Game {
     status: GameStatus,
     /// Winner (if game is over)
     winner: Option<Stone>,
+    /// Komi (compensation points for white)
+    pub komi: f32,
 }
 
 /// Game status
@@ -52,6 +54,7 @@ impl Game {
             pass_count: 0,
             status: GameStatus::InProgress,
             winner: None,
+            komi: 6.5, // Standard komi
         }
     }
     
@@ -181,9 +184,12 @@ impl Game {
 
     /// Score territory and determine winner (simple implementation)
     fn determine_winner(&mut self) {
-        // Simple scoring: count stones + territory
+        // Simple scoring: count stones + territory + komi
         let black_score = self.board.stones_on_board(Stone::Black) as i32 + self.captured_stones[0] as i32;
-        let white_score = self.board.stones_on_board(Stone::White) as i32 + self.captured_stones[1] as i32;
+        let mut white_score = self.board.stones_on_board(Stone::White) as i32 + self.captured_stones[1] as i32;
+        
+        // Add komi to white score
+        white_score += self.komi as i32;
         
         if black_score > white_score {
             self.winner = Some(Stone::Black);

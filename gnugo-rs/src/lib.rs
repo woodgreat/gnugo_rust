@@ -5,6 +5,7 @@
 
 
 pub mod engine;
+pub mod gtp;
 pub mod patterns;
 pub mod ui;
 

@@ -295,6 +295,51 @@ impl Board {
         }
         count
     }
+
+    /// Counts liberties for a single stone or group at (x,y)
+    pub fn count_liberties(&self, x: usize, y: usize) -> usize {
+        if x >= self.size || y >= self.size || self.grid[y][x] == Stone::Empty {
+            return 0;
+        }
+        
+        if let Some(group) = self.find_group(x, y) {
+            group.liberties
+        } else {
+            0
+        }
+    }
+
+    /// Finds all liberty positions for a stone or group at (x,y)
+    pub fn find_liberties(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
+        if x >= self.size || y >= self.size || self.grid[y][x] == Stone::Empty {
+            return Vec::new();
+        }
+        
+        let mut liberties = Vec::new();
+        let mut checked = vec![vec![false; self.size]; self.size];
+        
+        if let Some(group) = self.find_group(x, y) {
+            for &(x, y) in &group.positions {
+                let neighbors = [(0, -1), (0, 1), (-1, 0), (1, 0)];
+                for &(dx, dy) in &neighbors {
+                    let nx = x as isize + dx;
+                    let ny = y as isize + dy;
+                    
+                    if nx >= 0 && nx < self.size as isize && ny >= 0 && ny < self.size as isize {
+                        let nx = nx as usize;
+                        let ny = ny as usize;
+                        
+                        if !checked[ny][nx] && self.grid[ny][nx] == Stone::Empty {
+                            liberties.push((nx, ny));
+                            checked[ny][nx] = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        liberties
+    }
 }
 
 impl fmt::Display for Stone {
