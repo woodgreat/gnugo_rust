@@ -7,6 +7,7 @@
 pub mod engine;
 pub mod gtp;
 pub mod patterns;
+pub mod sgf;
 pub mod ui;
 
 #[cfg(test)]

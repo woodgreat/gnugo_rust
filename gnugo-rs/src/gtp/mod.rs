@@ -4,9 +4,11 @@
 //! Go Text Protocol (GTP) implementation for GNU Go Rust
 
 use std::io::{self, BufRead, Write};
+use std::fs;
 use crate::engine::game::Game;
 use crate::engine::board::Stone;
 use crate::engine::eye::EyeAnalyzer;
+use crate::sgf::SGFHandler;
 
 /// GTP protocol handler
 pub struct GTPHandler {
@@ -76,6 +78,8 @@ impl GTPHandler {
             "findlib" => self.findlib(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "ladder_attack" => self.ladder_attack(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "eye_data" => self.eye_data(if cmd_parts.len() > 2 { (cmd_parts[1], cmd_parts[2]) } else { ("", "") }),
+            "loadsgf" => self.loadsgf(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
+            "printsgf" => self.printsgf(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "quit" => "quit".to_string(),
             "list_commands" => self.list_commands(),
             "showboard" => self.showboard(),
@@ -139,6 +143,7 @@ impl GTPHandler {
             "list_commands", "showboard", "known_command",
             "is_legal", "list_stones", "countlib", "findlib",
             "echo", "echo_err", "ladder_attack", "eye_data",
+            "loadsgf", "printsgf",
         ];
         if commands.contains(&command) { "true".to_string() } else { "false".to_string() }
     }
@@ -368,6 +373,42 @@ impl GTPHandler {
             result.push('\n');
         }
         result
+    }
+
+    /// Implementation of loadsgf command
+    fn loadsgf(&mut self, filename: &str) -> String {
+        if filename.is_empty() {
+            return "? missing filename".to_string();
+        }
+
+        let sgf_handler = SGFHandler::new();
+        match sgf_handler.load_file(filename) {
+            Ok(tree) => {
+                println!("DEBUG: SGF tree loaded successfully");
+                println!("DEBUG: Root properties: {:?}", tree.root.properties.keys());
+                
+                if let Err(e) = sgf_handler.apply_to_game(&tree, &mut self.game) {
+                    return format!("? {}", e);
+                }
+                "".to_string()
+            }
+            Err(e) => format!("? {}", e),
+        }
+    }
+
+    /// Implementation of printsgf command
+    fn printsgf(&self, filename: &str) -> String {
+        let sgf_handler = SGFHandler::new();
+        match sgf_handler.game_to_sgf(&self.game, if filename.is_empty() { None } else { Some(filename) }) {
+            Ok(sgf_content) => {
+                if filename.is_empty() {
+                    sgf_content
+                } else {
+                    "".to_string()
+                }
+            }
+            Err(e) => format!("? {}", e),
+        }
     }
 }
 
