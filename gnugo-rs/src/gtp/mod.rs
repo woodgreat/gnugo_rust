@@ -4,7 +4,6 @@
 //! Go Text Protocol (GTP) implementation for GNU Go Rust
 
 use std::io::{self, BufRead, Write};
-use std::fs;
 use crate::engine::game::Game;
 use crate::engine::board::Stone;
 use crate::engine::eye::EyeAnalyzer;
@@ -80,7 +79,10 @@ impl GTPHandler {
             "eye_data" => self.eye_data(if cmd_parts.len() > 2 { (cmd_parts[1], cmd_parts[2]) } else { ("", "") }),
             "loadsgf" => self.loadsgf(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
             "printsgf" => self.printsgf(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
-            "quit" => "quit".to_string(),
+            "quit" | "exit" => {
+                std::process::exit(0);
+            },
+            "list" | "help" => self.list_commands(),
             "list_commands" => self.list_commands(),
             "showboard" => self.showboard(),
             "known_command" => self.known_command(if cmd_parts.len() > 1 { cmd_parts[1] } else { "" }),
@@ -139,8 +141,8 @@ impl GTPHandler {
             "protocol_version", "name", "version", "boardsize", 
             "clear_board", "komi", "get_komi", "play", "genmove", 
             "genmove_black", "genmove_white", "undo", "captures",
-            "final_score", "time_settings", "quit",
-            "list_commands", "showboard", "known_command",
+            "final_score", "time_settings", "quit", "exit",
+            "list_commands", "showboard", "known_command", "list", "help",
             "is_legal", "list_stones", "countlib", "findlib",
             "echo", "echo_err", "ladder_attack", "eye_data",
             "loadsgf", "printsgf",
@@ -288,7 +290,6 @@ impl GTPHandler {
         }
     }
 
-    /// Implementation of ladder_attack command
     fn ladder_attack(&self, move_str: &str) -> String {
         if let Some((x, y)) = parse_gtp_move(move_str, self.game.board.size()) {
             if self.game.board.get_stone(x, y) == Stone::Empty {
@@ -300,7 +301,6 @@ impl GTPHandler {
                 return "? string must have exactly 2 liberties".to_string();
             }
             
-            // Use eye analyzer to find attack point
             if let Some(attack_point) = self.eye_analyzer.find_ladder_attack_point(&self.game.board, x, y) {
                 format!("1 {}", format_move(attack_point.0, attack_point.1))
             } else {
@@ -311,7 +311,6 @@ impl GTPHandler {
         }
     }
 
-    /// Implementation of eye_data command
     fn eye_data(&self, (color, move_str): (&str, &str)) -> String {
         let stone_color = match color.to_lowercase().as_str() {
             "black" => Stone::Black,
@@ -322,7 +321,6 @@ impl GTPHandler {
         if let Some((x, y)) = parse_gtp_move(move_str, self.game.board.size()) {
             let eyes = self.eye_analyzer.analyze_eyes(&self.game.board, stone_color);
             
-            // Find eye data for the specified position
             for eye in eyes {
                 if eye.origin == (x, y) {
                     return format!(
@@ -350,9 +348,10 @@ impl GTPHandler {
             "protocol_version", "name", "version", "boardsize", "clear_board",
             "komi", "get_komi", "play", "genmove", "genmove_black", "genmove_white",
             "undo", "captures", "final_score", "time_settings",
-            "is_legal", "list_stones", "quit", "list_commands", "showboard", "known_command",
+            "is_legal", "list_stones", "quit", "exit", "list", "help",
+            "list_commands", "showboard", "known_command",
             "countlib", "findlib", "echo", "echo_err",
-            "ladder_attack", "eye_data",
+            "ladder_attack", "eye_data", "loadsgf", "printsgf",
         ].join("\n")
     }
 
@@ -375,7 +374,6 @@ impl GTPHandler {
         result
     }
 
-    /// Implementation of loadsgf command
     fn loadsgf(&mut self, filename: &str) -> String {
         if filename.is_empty() {
             return "? missing filename".to_string();
@@ -384,9 +382,6 @@ impl GTPHandler {
         let sgf_handler = SGFHandler::new();
         match sgf_handler.load_file(filename) {
             Ok(tree) => {
-                println!("DEBUG: SGF tree loaded successfully");
-                println!("DEBUG: Root properties: {:?}", tree.root.properties.keys());
-                
                 if let Err(e) = sgf_handler.apply_to_game(&tree, &mut self.game) {
                     return format!("? {}", e);
                 }
@@ -396,7 +391,6 @@ impl GTPHandler {
         }
     }
 
-    /// Implementation of printsgf command
     fn printsgf(&self, filename: &str) -> String {
         let sgf_handler = SGFHandler::new();
         match sgf_handler.game_to_sgf(&self.game, if filename.is_empty() { None } else { Some(filename) }) {
