@@ -363,10 +363,11 @@ impl SGFHandler {
         let game_snapshot = game.clone();
         
         // Apply moves from this node
+        // SGF uses (a, b) where a=column (x), b=row from top (y in our system)
         if let Some(moves) = node.properties.get("B") {
             for mv in moves {
                 if let SGFProperty::Point((x, y)) = mv {
-                    game.make_move(*y, *x)
+                    game.make_move(*x, *y)
                         .map_err(|e| format!("Failed to apply black move: {}", e))?;
                 }
             }
@@ -375,7 +376,7 @@ impl SGFHandler {
         if let Some(moves) = node.properties.get("W") {
             for mv in moves {
                 if let SGFProperty::Point((x, y)) = mv {
-                    game.make_move(*y, *x)
+                    game.make_move(*x, *y)
                         .map_err(|e| format!("Failed to apply white move: {}", e))?;
                 }
             }

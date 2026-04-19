@@ -71,7 +71,7 @@ impl TerminalUI {
                 },
                 _ => {
                     if let Some((x, y)) = parse_move(&input) {
-                        match self.game.make_move(y, x) {
+                        match self.game.make_move(x, y) {
                             Ok(()) => {},
                             Err(e) => {
                                 println!("{}", e);
@@ -89,11 +89,24 @@ impl TerminalUI {
     }
 
     fn clear_screen(&self) -> io::Result<()> {
-        print!("\x1B[2J\x1B[H");
-        io::stdout().flush()
+        // Use Windows-specific clear command for better compatibility
+        #[cfg(windows)]
+        {
+            let _ = std::process::Command::new("cmd")
+                .args(&["/C", "cls"])
+                .status();
+        }
+        #[cfg(not(windows))]
+        {
+            print!("\x1B[2J\x1B[H");
+            io::stdout().flush()?;
+        }
+        Ok(())
     }
 }
 
+/// Parse move input like "D4" or "d4" into (x, y) coordinates
+/// Returns 1-based coordinates (1,1) is top-left
 fn parse_move(input: &str) -> Option<(usize, usize)> {
     if input.is_empty() {
         return None;
@@ -107,18 +120,18 @@ fn parse_move(input: &str) -> Option<(usize, usize)> {
         return None;
     }
     
-    // Convert column letter to index (A=0, B=1, ...) 
-    let mut x = (col_char as u8 - b'A') as usize;
+    // Convert column letter to X coordinate (A=1, B=2, ...) 
+    let mut x = (col_char as u8 - b'A') as usize + 1;
     
     // If letter is after 'I', subtract 1 (skip I)
     if col_char > 'I' {
         x = x.saturating_sub(1);
     }
     
-    // Parse row number (1-based)
+    // Parse row number (1-based from top)
     let row_str: String = chars.collect();
     let y: usize = row_str.parse().ok()?; 
     
-    // Convert 1-based to 0-based indexing, return as (row, col) = (y, x)
-    Some((y.saturating_sub(1), x))
+    // Return 1-based coordinates (x, y)
+    Some((x, y))
 }
