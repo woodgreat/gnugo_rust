@@ -44,8 +44,12 @@ impl Board {
     }
 
     /// Gets the stone at a specific position (x, y)
+    /// x, y are 1-based coordinates (1..=size)
     pub fn get_stone(&self, x: usize, y: usize) -> Stone {
-        self.grid[y][x]
+        if x == 0 || y == 0 || x > self.size || y > self.size {
+            return Stone::Empty;
+        }
+        self.grid[y - 1][x - 1]
     }
 
     /// Gets the number of captured stones
@@ -69,8 +73,12 @@ impl Board {
     }
 
     /// Directly set a stone at position (x, y) without validation (for testing)
+    /// x, y are 1-based coordinates (1..=size)
     pub fn set_stone(&mut self, x: usize, y: usize, stone: Stone) {
-        self.grid[y][x] = stone;
+        if x == 0 || y == 0 || x > self.size || y > self.size {
+            return;
+        }
+        self.grid[y - 1][x - 1] = stone;
     }
 
     /// Finds a group of connected stones at position (x, y) (public for testing)
@@ -118,11 +126,15 @@ impl Board {
 
     /// Places a stone on the board and handles captures
     pub fn place_stone(&mut self, x: usize, y: usize, stone: Stone) -> Result<(), &'static str> {
-        if x >= self.size || y >= self.size {
+                // Convert 1-based to 0-based for internal storage
+        let ix = x - 1;
+        let iy = y - 1;
+        
+        if x == 0 || y == 0 || x > self.size || y > self.size {
             return Err("Position out of bounds");
         }
         
-        if self.grid[y][x] != Stone::Empty {
+        if self.grid[iy][ix] != Stone::Empty {
             return Err("Position already occupied");
         }
         
@@ -134,7 +146,7 @@ impl Board {
         }
         
         // Place the stone
-        self.grid[y][x] = stone;
+        self.grid[iy][ix] = stone;
         
         let opponent = match stone {
             Stone::Black => Stone::White,
@@ -238,6 +250,7 @@ impl Board {
     }
 
     /// Checks if a position is a hoshi point (star point)
+    /// x, y are 1-based coordinates (1..=size)
     pub fn is_hoshi_point(&self, x: usize, y: usize) -> bool {
         // No hoshi points on these boards
         if self.size == 2 || self.size == 4 {
@@ -246,25 +259,26 @@ impl Board {
 
         // 3x3 board: middle point only
         if self.size == 3 {
-            return x == 1 && y == 1;
+            return x == 2 && y == 2;
         }
 
         // 5x5 board: specific pattern
         if self.size == 5 {
-            return (x == 1 && (y == 1 || y == 3))
-                || (x == 2 && y == 2)
-                || (x == 3 && (y == 1 || y == 3));
+            return (x == 2 && (y == 2 || y == 4))
+                || (x == 3 && y == 3)
+                || (x == 4 && (y == 2 || y == 4));
         }
 
+        // For larger boards, calculate hoshi positions
         // 3-3 points for sizes 7-11, 4-4 for larger
-        let hoshi = if self.size <= 11 { 2 } else { 3 };
-        let middle = self.size / 2;
+        let hoshi = if self.size <= 11 { 3 } else { 4 }; // 1-based: 3 or 4
+        let middle = (self.size + 1) / 2; // 1-based middle (e.g., 10 for 19x19)
 
         // Normalize coordinates by mirroring to lower numbers
-        let m = if x >= middle { self.size - 1 - x } else { x };
-        let n = if y >= middle { self.size - 1 - y } else { y };
+        let m = if x > middle { self.size + 1 - x } else { x };
+        let n = if y > middle { self.size + 1 - y } else { y };
 
-        // Check corner hoshi
+        // Check corner hoshi (3-3 or 4-4 points)
         if m == hoshi && n == hoshi {
             return true;
         }
@@ -274,13 +288,19 @@ impl Board {
             return false;
         }
 
-        // Boards less than 12 only have middle point
-        if self.size < 12 {
+        // Boards less than 13 only have corner hoshi and center
+        if self.size < 13 {
             return m == middle && n == middle;
         }
 
-        // Midpoint hoshi for larger boards
-        (m == hoshi || m == middle) && (n == hoshi || n == middle)
+        // For larger boards (13x13, 15x15, 17x17, 19x19):
+        // Check side hoshi (e.g., 4-10, 10-4, 10-10 for 19x19)
+        if (m == hoshi && n == middle) || (m == middle && n == hoshi) {
+            return true;
+        }
+
+        // Check center point
+        m == middle && n == middle
     }
 
     /// Counts the number of stones of a specific color on the board

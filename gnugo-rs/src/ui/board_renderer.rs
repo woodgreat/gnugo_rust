@@ -48,22 +48,25 @@ impl BoardRenderer {
         let mut output = String::new();
         
         if self.config.show_coordinates {
-            // Column headers (A, B, C...)
+            // Column headers (A-H, J-T) - skip I as per Go convention
             output.push_str("  ");
-            for x in 0..board.size() {
-                let col_char = (b'A' + x as u8) as char;
+            for x in 1..=board.size() {
+                let col_char = match x {
+                    1..=8 => (b'A' + (x - 1) as u8) as char,  // A-H
+                    _ => (b'A' + x as u8) as char,  // J-T (skip I)
+                };
                 output.push_str(&format!(" {} ", col_char));
             }
             output.push('\n');
         }
-        
-        // Board rows
-        for y in 0..board.size() {
+
+        // Board rows - display from top (y=1) to bottom (y=size)
+        for y in 1..=board.size() {
             if self.config.show_coordinates {
-                output.push_str(&format!("{:2}", y + 1));
+                output.push_str(&format!("{:2}", y));
             }
-            
-            for x in 0..board.size() {
+
+            for x in 1..=board.size() {
                 let stone = board.get_stone(x, y);
                 let symbol = self.stone_to_symbol(stone);
                 
