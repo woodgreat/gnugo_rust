@@ -30,8 +30,8 @@ pub fn draw_board(board: &Board) {
         print!("{:2}", y);
         for x in 1..=size {
             match board.get_stone(x, y) {
-                Stone::Black => print!(" ○ "),
-                Stone::White => print!(" ● "),
+                Stone::Black => print!(" O "),
+                Stone::White => print!(" X "),
                 Stone::Empty => {
                     if board.is_hoshi_point(x, y) {
                         print!(" + ");
@@ -62,9 +62,9 @@ pub fn draw_board(board: &Board) {
 impl Stone {
     pub fn to_char(&self) -> char {
         match self {
-            Stone::Black => '○',
-            Stone::White => '●',
-            Stone::Empty => '·',
+            Stone::Black => 'O',
+            Stone::White => 'X',
+            Stone::Empty => '.',
         }
     }
 }
